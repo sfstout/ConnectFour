@@ -4,6 +4,7 @@ module Main where
 import Control.Concurrent
 import Graphics.Blank
 import Data.Text (Text)
+import Data.List
 
 type Piece a = ((Double, Double), Double, a) -- ((X Pos, Y Pos), Speed/momentum, Color )
 
@@ -41,7 +42,6 @@ modBoard :: [[Int]] -> [Maybe Int] -> Int -> [[Int]]
 modBoard b [] c = b
 modBoard b ((Just x):xs) c = modBoard (modifyBoard b x c) xs c
 modBoard b (Nothing:xs) c = modBoard b xs c
-
 
 changeTurn :: RY -> RY
 changeTurn R = Y
@@ -98,9 +98,20 @@ go context = do
                 let slot = [getX x | Just (x,y) <- map ePageXY es]
                 if (length slot == 0) then return () else print slot
 --                print turn
+                let moddedBoard = modBoard board slot ((turn == R) ? 1 :? 2)
                 threadDelay(20*1000)
+                if (null es) then return () else print (checkForWinner moddedBoard)
+
+
+--                let hasWon = checkForWin moddedBoard
+--                if (hasWon /= NoWin) then print hasWon else return ()
+
 -- modifyBoard :: Board -> number of color -> column piece is placed 
-                loop (modBoard board slot ((turn == Y) ? 1 :? 2), null es ? turn :? (changeTurn turn)) -- Only change turns if the previous player went
+                if (null es) then
+                        loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn)) -- Only change turns if the previous player went
+                else
+                        (checkForWinner board == False) ? (loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn))) :? return () -- Only change turns if the previous player went
+                        
 --                loop (board, null es ? turn :? (changeTurn turn)) -- Only change turns if the previous player went
         loop (originalBoard,R) -- Red goes first
 
@@ -144,6 +155,50 @@ translateR 2 = 0.5
 translateR 3 = -0.5
 translateR 4 = -1.5   
 translateR 5 = -2.5   
+
+data Win = Red | Yellow | NoWin deriving (Eq, Ord, Show)
+
+isMember :: Bool -> [Bool] -> Bool
+isMember _ [] = False
+isMember b (x:xs) = if x == b then True else isMember b xs
+--
+--areEqual :: [Maybe Int] -> Bool
+--areEqual [] = True
+--areEqual ((Just x):xs) = if (Just x) == (head xs) then areEqual xs else False
+--areEqual (Nothing:xs) = False
+
+-- List to check through -> Number left to find -> What to search for -> Result
+checkForRun :: [Maybe Int] -> Int -> Int -> Bool
+checkForRun _ 0 _ = True
+checkForRun [] l s = False
+checkForRun ((Just 1):xs) l s = if s == 1 then checkForRun xs (l - 1) s else checkForRun xs 4 s
+checkForRun ((Just 2):xs) l s = if s == 2 then checkForRun xs (l - 1) s else checkForRun xs 4 s
+checkForRun (x:xs) l s = checkForRun xs 4 s
+
+checkColumnEntry :: [[Int]] -> Int -> Bool
+checkColumnEntry xs c = if checkForRun [returnNumFromColRow xs (c, 0 + ro) | ro <- [0..5]] 4 1 || checkForRun [returnNumFromColRow xs (c, 0 + ro) | ro <- [0..5]] 4 2 then True else False
+
+checkForWinner :: [[Int]] -> Bool
+checkForWinner xxs = if checkFullColumn xxs || checkFullRow xxs then True else False 
+
+--checkDiagonalEntry :: [[Int]] -> Int -> Bool
+--checkDiagonalEntry xs r = if checkForRun [returnNumFromColRow xs (0 + co, r) | co <- [0..6]] 4 1 || checkForRun [returnNumFromColRow xs (0 + co, r) | co <- [0..6]] 4 2 then True else False 
+--
+--checkFullDiagonal :: [[Int]] -> Bool
+--checkFullDiagonal xs = isMember True (map (checkDiagonalEntry xs) [0..12])
+
+-- Board -> Column -> Has a victor
+checkFullColumn :: [[Int]] -> Bool
+checkFullColumn xs = isMember True (map (checkColumnEntry xs) [0..6])
+
+checkRowEntry :: [[Int]] -> Int -> Bool
+checkRowEntry xs r = if checkForRun [returnNumFromColRow xs (0 + co, r) | co <- [0..6]] 4 1 || checkForRun [returnNumFromColRow xs (0 + co, r) | co <- [0..6]] 4 2 then True else False 
+
+checkFullRow :: [[Int]] -> Bool
+checkFullRow xs = isMember True (map (checkRowEntry xs) [0..5])
+
+returnNumFromColRow :: [[Int]] -> (Column, Row) -> Maybe Int
+returnNumFromColRow xs (c,r) = if c >= 0 && c < 7 && r >= 0 && r < 6 then (Just ((xs !! c) !! r)) else Nothing
 
 renderColumn :: [Int] -> BSize -> Column -> Row -> Canvas ()
 renderColumn [] _ _ _ = do
