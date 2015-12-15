@@ -1,3 +1,5 @@
+-- Program structure based off of https://github.com/ku-fpg/blank-canvas/wiki/Tic-Tac-Toe
+
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
@@ -60,11 +62,6 @@ go context = do
         let boardSize  = min (height context) (width context)
         let limit = 3*(boardSize/7) + 4
 
---        let origCols = take 6 (repeat 0)
---        let originalBoard = take 7 (repeat origCols)
-
-        if (True) then print originalBoard else print originalBoard
-
         let getX :: Double -> Maybe Int
             getX x
               | x > -3.5*(boardSize/8)+(width context / 2) && x < -2.5*(boardSize/8)+(width context / 2) = Just (0)
@@ -84,40 +81,27 @@ go context = do
                                        drawThickLine (x, -limit) (x, limit) 
                                        drawThickLine (-limit, y) (limit, y)
                                        renderAllPieces board boardSize
---                                       showPiece (-3*(boardSize/8), 2.5*(boardSize/7)) "red"
                                        restore()
                                        | x <- map (*(boardSize/8)) [-3.5..3.5],
                                          y <- map (*(boardSize/7)) [-3..3]
                                   ]
-                        --
-
-                --
-
 
                 es <- flush context
-                if (null es) then return () else print es
-                if (null es) then return () else print board
 
                 let slot = [getX x | Just (x,y) <- map ePageXY es]
-                if (length slot == 0) then return () else print slot
---                print turn
                 let moddedBoard = modBoard board slot ((turn == R) ? 1 :? 2)
                 threadDelay(20*1000)
-                if (null es) then return () else print (checkForWinner moddedBoard)
 
+--                if (null es) then
+--                        loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn)) -- Only change turns if the previous player went
+--                else
+--                        (checkForWinner board == False) ? (loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn))) :? (winner context "Winner!") -- Only change turns if the previous player went
 
---                let hasWon = checkForWin moddedBoard
---                if (hasWon /= NoWin) then print hasWon else return ()
-
--- modifyBoard :: Board -> number of color -> column piece is placed 
-                if (null es) then
-                        loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn)) -- Only change turns if the previous player went
-                else
-                        (checkForWinner board == False) ? (loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn))) :? return () -- Only change turns if the previous player went
+                (checkForWinner board == False) ? (loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn))) :? (winner context "Winner!") -- Only change turns if the previous player went
                         
---                loop (board, null es ? turn :? (changeTurn turn)) -- Only change turns if the previous player went
         loop (originalBoard,R) -- Red goes first
 
+-- Based off of https://github.com/ku-fpg/blank-canvas/wiki/Line
 drawLine :: Double -> (Double, Double) -> (Double, Double) -> Canvas ()
 drawLine thickness (x,y) (x', y') = do
         beginPath()
@@ -129,6 +113,7 @@ drawLine thickness (x,y) (x', y') = do
 
 drawThickLine = drawLine 10
 
+-- Based off of https://github.com/ku-fpg/blank-canvas/wiki/Bounce
 showPiece :: (Double, Double) -> Color -> Canvas ()
 showPiece (x,y) col = do
         beginPath()
@@ -137,6 +122,16 @@ showPiece (x,y) col = do
         arc(x, y, pieceSize, 0, pi*2, False)
         closePath()
         fill()
+
+winner c s = send c $ do
+       let x = width c / 2
+       let y = height c / 2
+       textAlign "center"
+       textBaseline "bottom"
+       font "60pt Helvetica"
+       lineWidth 3
+       fillStyle "#000000"
+       fillText(s, x, y)
 
 type Column = Int
 type Row = Int
@@ -164,11 +159,6 @@ data Win = Red | Yellow | NoWin deriving (Eq, Ord, Show)
 isMember :: Bool -> [Bool] -> Bool
 isMember _ [] = False
 isMember b (x:xs) = if x == b then True else isMember b xs
---
---areEqual :: [Maybe Int] -> Bool
---areEqual [] = True
---areEqual ((Just x):xs) = if (Just x) == (head xs) then areEqual xs else False
---areEqual (Nothing:xs) = False
 
 -- List to check through -> Number left to find -> What to search for -> Result
 checkForRun :: [Maybe Int] -> Int -> Int -> Bool
