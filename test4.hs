@@ -49,6 +49,9 @@ changeTurn Y = R
 
 pieceSize = 25
 
+origCols = take 6 (repeat 0)
+originalBoard = take 7 (repeat origCols)
+
 main :: IO ()
 main = blankCanvas 3000 { events = ["mousedown"] } $ go
 
@@ -57,8 +60,8 @@ go context = do
         let boardSize  = min (height context) (width context)
         let limit = 3*(boardSize/7) + 4
 
-        let origCols = take 6 (repeat 0)
-        let originalBoard = take 7 (repeat origCols)
+--        let origCols = take 6 (repeat 0)
+--        let originalBoard = take 7 (repeat origCols)
 
         if (True) then print originalBoard else print originalBoard
 
@@ -179,15 +182,33 @@ checkColumnEntry :: [[Int]] -> Int -> Bool
 checkColumnEntry xs c = if checkForRun [returnNumFromColRow xs (c, 0 + ro) | ro <- [0..5]] 4 1 || checkForRun [returnNumFromColRow xs (c, 0 + ro) | ro <- [0..5]] 4 2 then True else False
 
 checkForWinner :: [[Int]] -> Bool
-checkForWinner xxs = if checkFullColumn xxs || checkFullRow xxs then True else False 
+checkForWinner xxs = if checkFullColumn xxs || checkFullRow xxs || checkFullDiagonal xxs then True else False 
 
---checkDiagonalEntry :: [[Int]] -> Int -> Bool
---checkDiagonalEntry xs r = if checkForRun [returnNumFromColRow xs (0 + co, r) | co <- [0..6]] 4 1 || checkForRun [returnNumFromColRow xs (0 + co, r) | co <- [0..6]] 4 2 then True else False 
---
---checkFullDiagonal :: [[Int]] -> Bool
---checkFullDiagonal xs = isMember True (map (checkDiagonalEntry xs) [0..12])
+checkFullDiagonal :: [[Int]] -> Bool
+checkFullDiagonal xs = isMember True (map (checkDDiagonalEntry xs) [0..11]) || (checkUDiagonalEntry xs [(0,2),(0,1),(0,0),(1,0),(2,0),(3,0)])
 
--- Board -> Column -> Has a victor
+getDDiagonal :: Int -> [(Int, Int)]
+getDDiagonal n = getDDiagonalH n 0
+
+getDDiagonalH :: Int -> Int -> [(Int, Int)]
+getDDiagonalH 0 0 = [(0,0)]
+getDDiagonalH 0 n = [(0,n)]
+getDDiagonalH n m = (n, m) : (getDDiagonalH (n-1) (m+1))
+
+getUDiagonal :: (Int, Int) -> [(Int, Int)]
+getUDiagonal n = getUDiagonalH n 0
+
+getUDiagonalH :: (Int, Int) -> Int -> [(Int, Int)]
+getUDiagonalH (i,j) 5 = [(i,j)]
+getUDiagonalH (i,j) m = (i, j) : (getUDiagonalH (i+1,j+1) (m + 1))
+
+checkUDiagonalEntry :: [[Int]] -> [(Int, Int)] -> Bool
+checkUDiagonalEntry xxs [] = False
+checkUDiagonalEntry xxs (x:xs) = if checkForRun (map (returnNumFromColRow xxs) (getUDiagonal x)) 4 1 || checkForRun (map (returnNumFromColRow xxs) (getUDiagonal x)) 4 2 then True else checkUDiagonalEntry xxs xs
+
+checkDDiagonalEntry :: [[Int]] -> Int -> Bool
+checkDDiagonalEntry xs d = if checkForRun (map (returnNumFromColRow xs) (getDDiagonal d)) 4 2 || checkForRun (map (returnNumFromColRow xs) (getDDiagonal d)) 4 1 then True else False
+
 checkFullColumn :: [[Int]] -> Bool
 checkFullColumn xs = isMember True (map (checkColumnEntry xs) [0..6])
 
