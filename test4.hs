@@ -116,6 +116,7 @@ showPiece (x,y) col = do
         closePath()
         fill()
 
+-- Based off of https://github.com/ku-fpg/blank-canvas/wiki/Text-Baseline
 winner c s = send c $ do
        let x = width c / 2
        let y = height c / 2
