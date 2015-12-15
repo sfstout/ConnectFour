@@ -8,8 +8,6 @@ import Graphics.Blank
 import Data.Text (Text)
 import Data.List
 
-type Piece a = ((Double, Double), Double, a) -- ((X Pos, Y Pos), Speed/momentum, Color )
-
 type Color = Text
 
 data RY = R | Y deriving (Eq, Ord, Show)
@@ -92,11 +90,6 @@ go context = do
                 let moddedBoard = modBoard board slot ((turn == R) ? 1 :? 2)
                 threadDelay(20*1000)
 
---                if (null es) then
---                        loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn)) -- Only change turns if the previous player went
---                else
---                        (checkForWinner board == False) ? (loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn))) :? (winner context "Winner!") -- Only change turns if the previous player went
-
                 (checkForWinner board == False) ? (loop (moddedBoard, (moddedBoard == board) ? turn :? (changeTurn turn))) :? (winner context "Winner!") -- Only change turns if the previous player went
                         
         loop (originalBoard,R) -- Red goes first
@@ -153,8 +146,6 @@ translateR 2 = 0.5
 translateR 3 = -0.5
 translateR 4 = -1.5   
 translateR 5 = -2.5   
-
-data Win = Red | Yellow | NoWin deriving (Eq, Ord, Show)
 
 isMember :: Bool -> [Bool] -> Bool
 isMember _ [] = False
